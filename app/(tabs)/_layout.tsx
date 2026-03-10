@@ -1,8 +1,8 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -13,21 +13,49 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
+        headerShown: true,
         tabBarButton: HapticTab,
       }}>
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: 'Resumen',
+          tabBarIcon: ({ color }) => <MaterialIcons size={24} name="dashboard" color={color} />,
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="reports"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: 'Reportes',
+          tabBarIcon: ({ color }) => <MaterialIcons size={24} name="analytics" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="accounts"
+        options={{
+          title: 'Cuentas',
+          tabBarIcon: ({ color }) => <MaterialIcons size={24} name="account-balance-wallet" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="transactions"
+        options={{
+          title: 'Transacciones',
+          tabBarIcon: ({ color }) => <MaterialIcons size={24} name="receipt-long" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="categories"
+        options={{
+          title: 'Categorías',
+          tabBarIcon: ({ color }) => <MaterialIcons size={24} name="category" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="transfers"
+        options={{
+          title: 'Transferencias',
+          tabBarIcon: ({ color }) => <MaterialIcons size={24} name="swap-horiz" color={color} />,
         }}
       />
     </Tabs>

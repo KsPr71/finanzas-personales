@@ -7,9 +7,12 @@ import { ThemedView } from '@/components/themed-view';
 export default function ModalScreen() {
   return (
     <ThemedView style={styles.container}>
-      <ThemedText type="title">This is a modal</ThemedText>
+      <ThemedText type="title">Finanzas Personales</ThemedText>
+      <ThemedText style={styles.text}>
+        Esta aplicación permite gestionar cuentas, categorías, transacciones y transferencias internas.
+      </ThemedText>
       <Link href="/" dismissTo style={styles.link}>
-        <ThemedText type="link">Go to home screen</ThemedText>
+        <ThemedText type="link">Volver al resumen</ThemedText>
       </Link>
     </ThemedView>
   );
@@ -21,6 +24,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
+    gap: 10,
+  },
+  text: {
+    textAlign: 'center',
   },
   link: {
     marginTop: 15,
