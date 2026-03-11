@@ -1,12 +1,70 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { type TransactionType, useFinance } from '@/contexts/finance-context';
+import { PremiumScrollView } from '@/components/premium-scroll-view';
+import { Collapsible } from '@/components/ui/collapsible';
+import { type AppColorPalette } from '@/constants/theme';
+import { type Transaction, type TransactionType, useFinance } from '@/contexts/finance-context';
+import { usePremiumUI } from '@/hooks/use-premium-ui';
 
 const TRANSACTION_TYPES: TransactionType[] = ['income', 'expense'];
 const today = new Date().toISOString().slice(0, 10);
+const monthFormatter = new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric' });
+const ALL_CATEGORIES_FILTER = 'all';
 
 const formatAmount = (amount: number, currency: string) => `${currency} ${amount.toFixed(2)}`;
+
+const getDateTimestamp = (value: string) => {
+  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T00:00:00` : value;
+  const timestamp = Date.parse(normalized);
+  return Number.isFinite(timestamp) ? timestamp : Number.NEGATIVE_INFINITY;
+};
+
+const getMonthInfo = (value: string) => {
+  const match = /^(\d{4})-(\d{2})/.exec(value);
+  if (!match) {
+    return { key: 'sin-fecha', label: 'Sin fecha valida' };
+  }
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
+    return { key: 'sin-fecha', label: 'Sin fecha valida' };
+  }
+
+  const key = `${match[1]}-${match[2]}`;
+  const labelRaw = monthFormatter.format(new Date(Date.UTC(year, month - 1, 1)));
+  const label = labelRaw.charAt(0).toUpperCase() + labelRaw.slice(1);
+  return { key, label };
+};
+
+type MonthlyTransactionGroup = {
+  key: string;
+  label: string;
+  items: Transaction[];
+};
+
+const buildMonthlyGroups = (items: Transaction[]) => {
+  const groups: MonthlyTransactionGroup[] = [];
+
+  items.forEach((transaction) => {
+    const monthInfo = getMonthInfo(transaction.date);
+    const lastGroup = groups[groups.length - 1];
+
+    if (lastGroup && lastGroup.key === monthInfo.key) {
+      lastGroup.items.push(transaction);
+      return;
+    }
+
+    groups.push({
+      key: monthInfo.key,
+      label: monthInfo.label,
+      items: [transaction],
+    });
+  });
+
+  return groups;
+};
 
 export default function TransactionsScreen() {
   const {
@@ -17,6 +75,8 @@ export default function TransactionsScreen() {
     updateTransaction,
     deleteTransaction,
   } = useFinance();
+  const { colors, ui } = usePremiumUI();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [type, setType] = useState<TransactionType>('expense');
@@ -25,6 +85,7 @@ export default function TransactionsScreen() {
   const [date, setDate] = useState(today);
   const [accountId, setAccountId] = useState('');
   const [categoryId, setCategoryId] = useState('');
+  const [categoryFilterId, setCategoryFilterId] = useState<string>(ALL_CATEGORIES_FILTER);
 
   const availableCategories = useMemo(
     () => categories.filter((category) => category.type === type),
@@ -51,6 +112,16 @@ export default function TransactionsScreen() {
     }
   }, [availableCategories, categoryId]);
 
+  useEffect(() => {
+    if (categoryFilterId === ALL_CATEGORIES_FILTER) {
+      return;
+    }
+
+    if (!categories.some((category) => category.id === categoryFilterId)) {
+      setCategoryFilterId(ALL_CATEGORIES_FILTER);
+    }
+  }, [categories, categoryFilterId]);
+
   const accountNameById = useMemo(
     () => Object.fromEntries(accounts.map((account) => [account.id, account.name])),
     [accounts]
@@ -60,6 +131,83 @@ export default function TransactionsScreen() {
     () => Object.fromEntries(categories.map((category) => [category.id, category.name])),
     [categories]
   );
+
+  const sortedTransactions = useMemo(
+    () =>
+      [...transactions].sort((a, b) => {
+        const dateDiff = getDateTimestamp(b.date) - getDateTimestamp(a.date);
+        if (dateDiff !== 0) {
+          return dateDiff;
+        }
+
+        return b.id.localeCompare(a.id);
+      }),
+    [transactions]
+  );
+
+  const filteredTransactions = useMemo(
+    () =>
+      sortedTransactions.filter((transaction) => {
+        if (categoryFilterId === ALL_CATEGORIES_FILTER) {
+          return true;
+        }
+        return transaction.categoryId === categoryFilterId;
+      }),
+    [sortedTransactions, categoryFilterId]
+  );
+
+  const incomeMonthlyTransactions = useMemo(
+    () => buildMonthlyGroups(filteredTransactions.filter((transaction) => transaction.type === 'income')),
+    [filteredTransactions]
+  );
+
+  const expenseMonthlyTransactions = useMemo(
+    () => buildMonthlyGroups(filteredTransactions.filter((transaction) => transaction.type === 'expense')),
+    [filteredTransactions]
+  );
+
+  const renderMonthlyGroups = (groups: MonthlyTransactionGroup[]) =>
+    groups.map((group) => (
+      <View key={group.key} style={styles.monthGroup}>
+        <Text style={styles.monthTitle}>{group.label}</Text>
+        <View style={styles.monthItems}>
+          {group.items.map((transaction) => (
+            <View key={transaction.id} style={ui.listItem}>
+              <View style={ui.listInfo}>
+                <Text style={ui.itemTitle}>{transaction.description || 'Sin descripcion'}</Text>
+                <Text style={ui.itemMeta}>
+                  {transaction.date} | {accountNameById[transaction.accountId] ?? 'Cuenta'} |{' '}
+                  {categoryNameById[transaction.categoryId] ?? 'Categoria'}
+                </Text>
+                <Text style={ui.itemMeta}>Tipo: {transaction.type}</Text>
+              </View>
+              <View style={styles.itemActions}>
+                <Text style={ui.itemAmount}>
+                  {formatAmount(
+                    transaction.type === 'expense' ? -transaction.amount : transaction.amount,
+                    accounts.find((account) => account.id === transaction.accountId)?.currency ?? 'USD'
+                  )}
+                </Text>
+                <View style={styles.actionRow}>
+                  <Pressable style={styles.linkButton} onPress={() => onEdit(transaction.id)}>
+                    <Text style={ui.linkButtonText}>Editar</Text>
+                  </Pressable>
+                  <Pressable style={styles.linkButton} onPress={() => onDelete(transaction.id)}>
+                    <Text style={ui.linkButtonDangerText}>Eliminar</Text>
+                  </Pressable>
+                </View>
+              </View>
+            </View>
+          ))}
+        </View>
+      </View>
+    ));
+
+  const hasTransactionsForFilter = filteredTransactions.length > 0;
+
+  const hasIncomeForFilter = incomeMonthlyTransactions.length > 0;
+
+  const hasExpenseForFilter = expenseMonthlyTransactions.length > 0;
 
   const clearForm = () => {
     setEditingId(null);
@@ -77,7 +225,7 @@ export default function TransactionsScreen() {
       return;
     }
     if (!accountId || !categoryId) {
-      Alert.alert('Error', 'Selecciona cuenta y categoría.');
+      Alert.alert('Error', 'Selecciona cuenta y categoria.');
       return;
     }
 
@@ -93,7 +241,7 @@ export default function TransactionsScreen() {
     const result = editingId ? updateTransaction(editingId, payload) : addTransaction(payload);
 
     if (!result.ok) {
-      Alert.alert('Error', result.error ?? 'No se pudo guardar la transacción.');
+      Alert.alert('Error', result.error ?? 'No se pudo guardar la transaccion.');
       return;
     }
 
@@ -118,7 +266,7 @@ export default function TransactionsScreen() {
   const onDelete = (transactionId: string) => {
     const result = deleteTransaction(transactionId);
     if (!result.ok) {
-      Alert.alert('Error', result.error ?? 'No se pudo eliminar la transacción.');
+      Alert.alert('Error', result.error ?? 'No se pudo eliminar la transaccion.');
       return;
     }
 
@@ -127,256 +275,182 @@ export default function TransactionsScreen() {
     }
   };
 
+  const renderTransactionForm = (showCancelAction: boolean) => (
+    <>
+      <View style={ui.chips}>
+        {TRANSACTION_TYPES.map((item) => (
+          <Pressable
+            key={item}
+            onPress={() => setType(item)}
+            style={[ui.chip, type === item && ui.chipActive]}>
+            <Text style={[ui.chipText, type === item && ui.chipTextActive]}>{item}</Text>
+          </Pressable>
+        ))}
+      </View>
+
+      <TextInput
+        placeholder='Monto'
+        value={amount}
+        onChangeText={setAmount}
+        keyboardType='decimal-pad'
+        style={ui.input}
+        placeholderTextColor={colors.textSubtle}
+      />
+
+      <TextInput
+        placeholder='Descripcion'
+        value={description}
+        onChangeText={setDescription}
+        style={ui.input}
+        placeholderTextColor={colors.textSubtle}
+      />
+
+      <TextInput
+        placeholder='Fecha (YYYY-MM-DD)'
+        value={date}
+        onChangeText={setDate}
+        style={ui.input}
+        placeholderTextColor={colors.textSubtle}
+      />
+
+      <Text style={ui.label}>Cuenta</Text>
+      <View style={ui.chips}>
+        {accounts.map((account) => (
+          <Pressable
+            key={account.id}
+            onPress={() => setAccountId(account.id)}
+            style={[ui.chip, accountId === account.id && ui.chipActive]}>
+            <Text style={[ui.chipText, accountId === account.id && ui.chipTextActive]}>{account.name}</Text>
+          </Pressable>
+        ))}
+      </View>
+
+      <Text style={ui.label}>Categoria</Text>
+      <View style={ui.chips}>
+        {availableCategories.map((category) => (
+          <Pressable
+            key={category.id}
+            onPress={() => setCategoryId(category.id)}
+            style={[ui.chip, categoryId === category.id && ui.chipActive]}>
+            <Text style={[ui.chipText, categoryId === category.id && ui.chipTextActive]}>{category.name}</Text>
+          </Pressable>
+        ))}
+      </View>
+
+      <View style={ui.actions}>
+        <Pressable style={ui.primaryButton} onPress={onSubmit}>
+          <Text style={ui.primaryButtonText}>{showCancelAction ? 'Guardar cambios' : 'Agregar transaccion'}</Text>
+        </Pressable>
+        {showCancelAction ? (
+          <Pressable style={ui.secondaryButton} onPress={clearForm}>
+            <Text style={ui.secondaryButtonText}>Cancelar edicion</Text>
+          </Pressable>
+        ) : null}
+      </View>
+    </>
+  );
+
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Transacciones</Text>
+    <PremiumScrollView contentContainerStyle={styles.container}>
+      <Text style={ui.title}>Transacciones</Text>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{editingId ? 'Editar transacción' : 'Nueva transacción'}</Text>
+      <View style={ui.section}>
+        {editingId ? (
+          <>
+            <Text style={ui.sectionTitle}>Editar transaccion</Text>
+            {renderTransactionForm(true)}
+          </>
+        ) : (
+          <Collapsible title='Nueva transaccion'>{renderTransactionForm(false)}</Collapsible>
+        )}
+      </View>
 
-        <View style={styles.chips}>
-          {TRANSACTION_TYPES.map((item) => (
-            <Pressable
-              key={item}
-              onPress={() => setType(item)}
-              style={[styles.chip, type === item && styles.chipActive]}>
-              <Text style={[styles.chipText, type === item && styles.chipTextActive]}>{item}</Text>
-            </Pressable>
-          ))}
-        </View>
-
-        <TextInput
-          placeholder="Monto"
-          value={amount}
-          onChangeText={setAmount}
-          keyboardType="decimal-pad"
-          style={styles.input}
-          placeholderTextColor="#94a3b8"
-        />
-
-        <TextInput
-          placeholder="Descripción"
-          value={description}
-          onChangeText={setDescription}
-          style={styles.input}
-          placeholderTextColor="#94a3b8"
-        />
-
-        <TextInput
-          placeholder="Fecha (YYYY-MM-DD)"
-          value={date}
-          onChangeText={setDate}
-          style={styles.input}
-          placeholderTextColor="#94a3b8"
-        />
-
-        <Text style={styles.label}>Cuenta</Text>
-        <View style={styles.chips}>
-          {accounts.map((account) => (
-            <Pressable
-              key={account.id}
-              onPress={() => setAccountId(account.id)}
-              style={[styles.chip, accountId === account.id && styles.chipActive]}>
-              <Text style={[styles.chipText, accountId === account.id && styles.chipTextActive]}>
-                {account.name}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-
-        <Text style={styles.label}>Categoría</Text>
-        <View style={styles.chips}>
-          {availableCategories.map((category) => (
+      <View style={ui.section}>
+        <Text style={ui.sectionTitle}>Listado</Text>
+        <Text style={ui.label}>Filtrar por categoria</Text>
+        <View style={ui.chips}>
+          <Pressable
+            onPress={() => setCategoryFilterId(ALL_CATEGORIES_FILTER)}
+            style={[ui.chip, categoryFilterId === ALL_CATEGORIES_FILTER && ui.chipActive]}>
+            <Text style={[ui.chipText, categoryFilterId === ALL_CATEGORIES_FILTER && ui.chipTextActive]}>
+              Todas
+            </Text>
+          </Pressable>
+          {categories.map((category) => (
             <Pressable
               key={category.id}
-              onPress={() => setCategoryId(category.id)}
-              style={[styles.chip, categoryId === category.id && styles.chipActive]}>
-              <Text style={[styles.chipText, categoryId === category.id && styles.chipTextActive]}>
+              onPress={() => setCategoryFilterId(category.id)}
+              style={[ui.chip, categoryFilterId === category.id && ui.chipActive]}>
+              <Text style={[ui.chipText, categoryFilterId === category.id && ui.chipTextActive]}>
                 {category.name}
               </Text>
             </Pressable>
           ))}
         </View>
 
-        <View style={styles.actions}>
-          <Pressable style={styles.primaryButton} onPress={onSubmit}>
-            <Text style={styles.primaryButtonText}>
-              {editingId ? 'Guardar cambios' : 'Agregar transacción'}
-            </Text>
-          </Pressable>
-          {editingId ? (
-            <Pressable style={styles.secondaryButton} onPress={clearForm}>
-              <Text style={styles.secondaryButtonText}>Cancelar edición</Text>
-            </Pressable>
-          ) : null}
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Listado</Text>
-        {transactions.length === 0 ? (
-          <Text style={styles.empty}>No hay transacciones registradas.</Text>
+        {sortedTransactions.length === 0 ? (
+          <Text style={ui.empty}>No hay transacciones registradas.</Text>
+        ) : !hasTransactionsForFilter ? (
+          <Text style={ui.empty}>No hay transacciones para la categoria seleccionada.</Text>
         ) : (
-          transactions.map((transaction) => (
-            <View key={transaction.id} style={styles.listItem}>
-              <View style={styles.listInfo}>
-                <Text style={styles.itemTitle}>{transaction.description || 'Sin descripción'}</Text>
-                <Text style={styles.itemMeta}>
-                  {transaction.date} | {accountNameById[transaction.accountId] ?? 'Cuenta'} |{' '}
-                  {categoryNameById[transaction.categoryId] ?? 'Categoría'}
-                </Text>
-                <Text style={styles.itemMeta}>Tipo: {transaction.type}</Text>
-              </View>
-              <View style={styles.itemActions}>
-                <Text style={styles.itemAmount}>
-                  {formatAmount(
-                    transaction.type === 'expense' ? -transaction.amount : transaction.amount,
-                    accounts.find((account) => account.id === transaction.accountId)?.currency ?? 'USD'
-                  )}
-                </Text>
-                <View style={styles.actionRow}>
-                  <Pressable style={styles.linkButton} onPress={() => onEdit(transaction.id)}>
-                    <Text style={styles.linkButtonText}>Editar</Text>
-                  </Pressable>
-                  <Pressable style={styles.linkButtonDanger} onPress={() => onDelete(transaction.id)}>
-                    <Text style={styles.linkButtonDangerText}>Eliminar</Text>
-                  </Pressable>
-                </View>
-              </View>
+          <>
+            <View style={styles.typeGroup}>
+              <Text style={styles.typeTitle}>Entradas</Text>
+              {hasIncomeForFilter ? (
+                renderMonthlyGroups(incomeMonthlyTransactions)
+              ) : (
+                <Text style={ui.empty}>No hay entradas para la categoria seleccionada.</Text>
+              )}
             </View>
-          ))
+
+            <View style={styles.typeGroup}>
+              <Text style={styles.typeTitle}>Gastos</Text>
+              {hasExpenseForFilter ? (
+                renderMonthlyGroups(expenseMonthlyTransactions)
+              ) : (
+                <Text style={ui.empty}>No hay gastos para la categoria seleccionada.</Text>
+              )}
+            </View>
+          </>
         )}
       </View>
-    </ScrollView>
+    </PremiumScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    padding: 16,
-    gap: 14,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1f2937',
-  },
-  section: {
-    backgroundColor: '#ffffff',
-    borderColor: '#e2e8f0',
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 12,
-    gap: 10,
-  },
-  sectionTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  label: {
-    color: '#475569',
-    fontWeight: '600',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    color: '#0f172a',
-  },
-  chips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  chip: {
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  chipActive: {
-    borderColor: '#0a7ea4',
-    backgroundColor: '#ecfeff',
-  },
-  chipText: {
-    color: '#334155',
-    fontWeight: '600',
-  },
-  chipTextActive: {
-    color: '#0a7ea4',
-  },
-  actions: {
-    gap: 8,
-  },
-  primaryButton: {
-    backgroundColor: '#0a7ea4',
-    borderRadius: 10,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  primaryButtonText: {
-    color: '#ffffff',
-    fontWeight: '700',
-  },
-  secondaryButton: {
-    borderWidth: 1,
-    borderColor: '#94a3b8',
-    borderRadius: 10,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  secondaryButtonText: {
-    color: '#334155',
-    fontWeight: '600',
-  },
-  listItem: {
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 10,
-    padding: 10,
-    gap: 8,
-  },
-  listInfo: {
-    gap: 2,
-  },
-  itemTitle: {
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  itemMeta: {
-    color: '#64748b',
-    fontSize: 12,
-  },
-  itemActions: {
-    gap: 6,
-  },
-  itemAmount: {
-    color: '#0f172a',
-    fontWeight: '700',
-  },
-  actionRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  linkButton: {
-    paddingVertical: 4,
-  },
-  linkButtonText: {
-    color: '#0a7ea4',
-    fontWeight: '600',
-  },
-  linkButtonDanger: {
-    paddingVertical: 4,
-  },
-  linkButtonDangerText: {
-    color: '#dc2626',
-    fontWeight: '600',
-  },
-  empty: {
-    color: '#64748b',
-  },
-});
+const createStyles = (colors: AppColorPalette) =>
+  StyleSheet.create({
+    container: {
+      gap: 16,
+    },
+    monthGroup: {
+      gap: 8,
+    },
+    monthTitle: {
+      color: colors.text,
+      fontSize: 15,
+      fontWeight: '800',
+    },
+    monthItems: {
+      gap: 8,
+    },
+    typeGroup: {
+      gap: 10,
+    },
+    typeTitle: {
+      color: colors.text,
+      fontSize: 17,
+      fontWeight: '800',
+    },
+    itemActions: {
+      gap: 8,
+    },
+    actionRow: {
+      flexDirection: 'row',
+      gap: 14,
+    },
+    linkButton: {
+      paddingVertical: 3,
+      paddingHorizontal: 2,
+    },
+  });

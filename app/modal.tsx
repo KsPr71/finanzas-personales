@@ -1,36 +1,62 @@
 import { Link } from 'expo-router';
-import { StyleSheet } from 'react-native';
+import { useMemo } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { PremiumScrollView } from '@/components/premium-scroll-view';
+import { type AppColorPalette } from '@/constants/theme';
+import { usePremiumUI } from '@/hooks/use-premium-ui';
 
 export default function ModalScreen() {
+  const { colors, ui } = usePremiumUI();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
-    <ThemedView style={styles.container}>
-      <ThemedText type="title">Finanzas Personales</ThemedText>
-      <ThemedText style={styles.text}>
-        Esta aplicación permite gestionar cuentas, categorías, transacciones y transferencias internas.
-      </ThemedText>
-      <Link href="/" dismissTo style={styles.link}>
-        <ThemedText type="link">Volver al resumen</ThemedText>
-      </Link>
-    </ThemedView>
+    <PremiumScrollView contentContainerStyle={styles.container}>
+      <View style={styles.badge}>
+        <Text style={styles.badgeText}>ACERCA DE LA APP</Text>
+      </View>
+      <Text style={ui.title}>Finanzas Personales</Text>
+      <View style={ui.section}>
+        <Text style={styles.text}>
+          Esta aplicacion te permite gestionar cuentas, categorias, transacciones y transferencias
+          internas con respaldo de datos en formato JSON.
+        </Text>
+      </View>
+      <Link href='/' dismissTo style={[styles.link, { color: colors.tint }]}>Volver al resumen</Link>
+    </PremiumScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-    gap: 10,
-  },
-  text: {
-    textAlign: 'center',
-  },
-  link: {
-    marginTop: 15,
-    paddingVertical: 15,
-  },
-});
+const createStyles = (colors: AppColorPalette) =>
+  StyleSheet.create({
+    container: {
+      flexGrow: 1,
+      justifyContent: 'center',
+      gap: 16,
+    },
+    badge: {
+      alignSelf: 'flex-start',
+      borderWidth: 1,
+      borderColor: colors.borderStrong,
+      borderRadius: 999,
+      paddingHorizontal: 12,
+      paddingVertical: 5,
+      backgroundColor: colors.surfaceMuted,
+    },
+    badgeText: {
+      color: colors.textMuted,
+      fontSize: 11,
+      fontWeight: '800',
+      letterSpacing: 0.9,
+    },
+    text: {
+      color: colors.textMuted,
+      fontSize: 15,
+      lineHeight: 24,
+    },
+    link: {
+      fontSize: 14,
+      fontWeight: '700',
+      textDecorationLine: 'underline',
+    },
+  });

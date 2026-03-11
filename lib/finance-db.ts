@@ -12,6 +12,9 @@ import type {
 } from '@/contexts/finance-context';
 
 const DB_NAME = 'finance.db';
+const THEME_PREFERENCE_KEY = 'theme_preference';
+
+export type AppThemePreference = 'system' | 'light' | 'dark';
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 let schemaPromise: Promise<void> | null = null;
@@ -32,6 +35,9 @@ const toNumber = (value: unknown) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
 };
+
+const isThemePreference = (value: unknown): value is AppThemePreference =>
+  value === 'system' || value === 'light' || value === 'dark';
 
 async function getDb() {
   if (!dbPromise) {
@@ -82,6 +88,11 @@ async function ensureSchema() {
           date TEXT NOT NULL,
           FOREIGN KEY (fromAccountId) REFERENCES accounts(id) ON DELETE CASCADE,
           FOREIGN KEY (toAccountId) REFERENCES accounts(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS app_settings (
+          key TEXT PRIMARY KEY NOT NULL,
+          value TEXT NOT NULL
         );
       `);
     })();
@@ -239,4 +250,35 @@ export async function prepareFinanceSnapshot(initialSnapshot: FinanceSnapshot) {
   }
 
   return current;
+}
+
+export async function loadThemePreference(): Promise<AppThemePreference> {
+  await ensureSchema();
+  const db = await getDb();
+
+  const row = await db.getFirstAsync<{ value: string }>(
+    'SELECT value FROM app_settings WHERE key = ?',
+    THEME_PREFERENCE_KEY
+  );
+
+  if (!row || !isThemePreference(row.value)) {
+    return 'system';
+  }
+
+  return row.value;
+}
+
+export async function persistThemePreference(preference: AppThemePreference) {
+  await ensureSchema();
+  const db = await getDb();
+
+  await db.runAsync(
+    `
+      INSERT INTO app_settings (key, value)
+      VALUES (?, ?)
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value
+    `,
+    THEME_PREFERENCE_KEY,
+    preference
+  );
 }

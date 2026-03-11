@@ -1,12 +1,18 @@
 import { useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { PremiumScrollView } from '@/components/premium-scroll-view';
+import { Collapsible } from '@/components/ui/collapsible';
+import { type AppColorPalette } from '@/constants/theme';
 import { type CategoryType, useFinance } from '@/contexts/finance-context';
+import { usePremiumUI } from '@/hooks/use-premium-ui';
 
 const CATEGORY_TYPES: CategoryType[] = ['income', 'expense'];
 
 export default function CategoriesScreen() {
   const { categories, addCategory, updateCategory, deleteCategory } = useFinance();
+  const { colors, ui } = usePremiumUI();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState('');
@@ -29,7 +35,7 @@ export default function CategoriesScreen() {
   const onSubmit = () => {
     const result = editingId ? updateCategory(editingId, { name, type }) : addCategory({ name, type });
     if (!result.ok) {
-      Alert.alert('Error', result.error ?? 'No se pudo guardar la categoría.');
+      Alert.alert('Error', result.error ?? 'No se pudo guardar la categoria.');
       return;
     }
 
@@ -50,7 +56,7 @@ export default function CategoriesScreen() {
   const onDelete = (categoryId: string) => {
     const result = deleteCategory(categoryId);
     if (!result.ok) {
-      Alert.alert('Error', result.error ?? 'No se pudo eliminar la categoría.');
+      Alert.alert('Error', result.error ?? 'No se pudo eliminar la categoria.');
       return;
     }
 
@@ -59,57 +65,67 @@ export default function CategoriesScreen() {
     }
   };
 
-  return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Categorías</Text>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{editingId ? 'Editar categoría' : 'Nueva categoría'}</Text>
-        <TextInput
-          placeholder="Nombre"
-          value={name}
-          onChangeText={setName}
-          style={styles.input}
-          placeholderTextColor="#94a3b8"
-        />
-        <View style={styles.chips}>
-          {CATEGORY_TYPES.map((item) => (
-            <Pressable
-              key={item}
-              onPress={() => setType(item)}
-              style={[styles.chip, type === item && styles.chipActive]}>
-              <Text style={[styles.chipText, type === item && styles.chipTextActive]}>{item}</Text>
-            </Pressable>
-          ))}
-        </View>
-        <View style={styles.actions}>
-          <Pressable style={styles.primaryButton} onPress={onSubmit}>
-            <Text style={styles.primaryButtonText}>
-              {editingId ? 'Guardar cambios' : 'Agregar categoría'}
-            </Text>
+  const renderCategoryForm = (showCancelAction: boolean) => (
+    <>
+      <TextInput
+        placeholder='Nombre'
+        value={name}
+        onChangeText={setName}
+        style={ui.input}
+        placeholderTextColor={colors.textSubtle}
+      />
+      <View style={ui.chips}>
+        {CATEGORY_TYPES.map((item) => (
+          <Pressable
+            key={item}
+            onPress={() => setType(item)}
+            style={[ui.chip, type === item && ui.chipActive]}>
+            <Text style={[ui.chipText, type === item && ui.chipTextActive]}>{item}</Text>
           </Pressable>
-          {editingId ? (
-            <Pressable style={styles.secondaryButton} onPress={clearForm}>
-              <Text style={styles.secondaryButtonText}>Cancelar edición</Text>
-            </Pressable>
-          ) : null}
-        </View>
+        ))}
+      </View>
+      <View style={ui.actions}>
+        <Pressable style={ui.primaryButton} onPress={onSubmit}>
+          <Text style={ui.primaryButtonText}>{showCancelAction ? 'Guardar cambios' : 'Agregar categoria'}</Text>
+        </Pressable>
+        {showCancelAction ? (
+          <Pressable style={ui.secondaryButton} onPress={clearForm}>
+            <Text style={ui.secondaryButtonText}>Cancelar edicion</Text>
+          </Pressable>
+        ) : null}
+      </View>
+    </>
+  );
+
+  return (
+    <PremiumScrollView contentContainerStyle={styles.container}>
+      <Text style={ui.title}>Categorias</Text>
+
+      <View style={ui.section}>
+        {editingId ? (
+          <>
+            <Text style={ui.sectionTitle}>Editar categoria</Text>
+            {renderCategoryForm(true)}
+          </>
+        ) : (
+          <Collapsible title='Nueva categoria'>{renderCategoryForm(false)}</Collapsible>
+        )}
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Categorías de ingresos</Text>
+      <View style={ui.section}>
+        <Text style={ui.sectionTitle}>Categorias de ingresos</Text>
         {groupedCategories.income.length === 0 ? (
-          <Text style={styles.empty}>No hay categorías de ingreso.</Text>
+          <Text style={ui.empty}>No hay categorias de ingreso.</Text>
         ) : (
           groupedCategories.income.map((category) => (
-            <View key={category.id} style={styles.listItem}>
-              <Text style={styles.itemTitle}>{category.name}</Text>
+            <View key={category.id} style={styles.categoryRow}>
+              <Text style={ui.itemTitle}>{category.name}</Text>
               <View style={styles.itemActions}>
                 <Pressable style={styles.linkButton} onPress={() => onEdit(category.id)}>
-                  <Text style={styles.linkButtonText}>Editar</Text>
+                  <Text style={ui.linkButtonText}>Editar</Text>
                 </Pressable>
-                <Pressable style={styles.linkButtonDanger} onPress={() => onDelete(category.id)}>
-                  <Text style={styles.linkButtonDangerText}>Eliminar</Text>
+                <Pressable style={styles.linkButton} onPress={() => onDelete(category.id)}>
+                  <Text style={ui.linkButtonDangerText}>Eliminar</Text>
                 </Pressable>
               </View>
             </View>
@@ -117,140 +133,52 @@ export default function CategoriesScreen() {
         )}
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Categorías de gastos</Text>
+      <View style={ui.section}>
+        <Text style={ui.sectionTitle}>Categorias de gastos</Text>
         {groupedCategories.expense.length === 0 ? (
-          <Text style={styles.empty}>No hay categorías de gasto.</Text>
+          <Text style={ui.empty}>No hay categorias de gasto.</Text>
         ) : (
           groupedCategories.expense.map((category) => (
-            <View key={category.id} style={styles.listItem}>
-              <Text style={styles.itemTitle}>{category.name}</Text>
+            <View key={category.id} style={styles.categoryRow}>
+              <Text style={ui.itemTitle}>{category.name}</Text>
               <View style={styles.itemActions}>
                 <Pressable style={styles.linkButton} onPress={() => onEdit(category.id)}>
-                  <Text style={styles.linkButtonText}>Editar</Text>
+                  <Text style={ui.linkButtonText}>Editar</Text>
                 </Pressable>
-                <Pressable style={styles.linkButtonDanger} onPress={() => onDelete(category.id)}>
-                  <Text style={styles.linkButtonDangerText}>Eliminar</Text>
+                <Pressable style={styles.linkButton} onPress={() => onDelete(category.id)}>
+                  <Text style={ui.linkButtonDangerText}>Eliminar</Text>
                 </Pressable>
               </View>
             </View>
           ))
         )}
       </View>
-    </ScrollView>
+    </PremiumScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    padding: 16,
-    gap: 14,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1f2937',
-  },
-  section: {
-    backgroundColor: '#ffffff',
-    borderColor: '#e2e8f0',
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 12,
-    gap: 10,
-  },
-  sectionTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    color: '#0f172a',
-  },
-  chips: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  chip: {
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  chipActive: {
-    borderColor: '#0a7ea4',
-    backgroundColor: '#ecfeff',
-  },
-  chipText: {
-    color: '#334155',
-    fontWeight: '600',
-  },
-  chipTextActive: {
-    color: '#0a7ea4',
-  },
-  actions: {
-    gap: 8,
-  },
-  primaryButton: {
-    backgroundColor: '#0a7ea4',
-    borderRadius: 10,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  primaryButtonText: {
-    color: '#ffffff',
-    fontWeight: '700',
-  },
-  secondaryButton: {
-    borderWidth: 1,
-    borderColor: '#94a3b8',
-    borderRadius: 10,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  secondaryButtonText: {
-    color: '#334155',
-    fontWeight: '600',
-  },
-  listItem: {
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 10,
-    padding: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 8,
-  },
-  itemTitle: {
-    color: '#0f172a',
-    fontWeight: '700',
-  },
-  itemActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  linkButton: {
-    paddingVertical: 4,
-  },
-  linkButtonText: {
-    color: '#0a7ea4',
-    fontWeight: '600',
-  },
-  linkButtonDanger: {
-    paddingVertical: 4,
-  },
-  linkButtonDangerText: {
-    color: '#dc2626',
-    fontWeight: '600',
-  },
-  empty: {
-    color: '#64748b',
-  },
-});
+const createStyles = (colors: AppColorPalette) =>
+  StyleSheet.create({
+    container: {
+      gap: 16,
+    },
+    categoryRow: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 14,
+      padding: 12,
+      backgroundColor: colors.surfaceMuted,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      gap: 8,
+    },
+    itemActions: {
+      flexDirection: 'row',
+      gap: 14,
+    },
+    linkButton: {
+      paddingVertical: 3,
+      paddingHorizontal: 2,
+    },
+  });
