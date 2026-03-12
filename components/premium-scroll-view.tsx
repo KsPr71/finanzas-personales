@@ -1,5 +1,7 @@
 import React from 'react';
 import {
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StyleSheet,
   View,
@@ -21,6 +23,12 @@ export function PremiumScrollView({
   ...scrollProps
 }: PremiumScrollViewProps) {
   const { colors } = usePremiumUI();
+  const {
+    keyboardShouldPersistTaps = 'handled',
+    keyboardDismissMode = Platform.OS === 'ios' ? 'interactive' : 'on-drag',
+    automaticallyAdjustKeyboardInsets = Platform.OS === 'ios',
+    ...restScrollProps
+  } = scrollProps;
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -28,19 +36,29 @@ export function PremiumScrollView({
         <View style={[styles.orb, styles.orbTop, { backgroundColor: `${colors.tint}2e` }]} />
         <View style={[styles.orb, styles.orbBottom, { backgroundColor: `${colors.warning}1f` }]} />
       </View>
-      <ScrollView
-        style={[styles.scroll, style]}
-        contentContainerStyle={[styles.content, contentContainerStyle]}
-        showsVerticalScrollIndicator={false}
-        {...scrollProps}>
-        {children}
-      </ScrollView>
+      <KeyboardAvoidingView
+        style={styles.keyboardContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ScrollView
+          style={[styles.scroll, style]}
+          contentContainerStyle={[styles.content, styles.contentGrow, contentContainerStyle]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps={keyboardShouldPersistTaps}
+          keyboardDismissMode={keyboardDismissMode}
+          automaticallyAdjustKeyboardInsets={automaticallyAdjustKeyboardInsets}
+          {...restScrollProps}>
+          {children}
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: {
+    flex: 1,
+  },
+  keyboardContainer: {
     flex: 1,
   },
   decorativeLayer: {
@@ -69,5 +87,8 @@ const styles = StyleSheet.create({
     paddingTop: 18,
     paddingBottom: 28,
     gap: 14,
+  },
+  contentGrow: {
+    flexGrow: 1,
   },
 });

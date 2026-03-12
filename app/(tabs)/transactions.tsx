@@ -8,6 +8,10 @@ import { type Transaction, type TransactionType, useFinance } from '@/contexts/f
 import { usePremiumUI } from '@/hooks/use-premium-ui';
 
 const TRANSACTION_TYPES: TransactionType[] = ['income', 'expense'];
+const TRANSACTION_TYPE_LABEL: Record<TransactionType, string> = {
+  income: 'Entrada',
+  expense: 'Gastos',
+};
 const today = new Date().toISOString().slice(0, 10);
 const monthFormatter = new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric' });
 const ALL_CATEGORIES_FILTER = 'all';
@@ -179,7 +183,7 @@ export default function TransactionsScreen() {
                   {transaction.date} | {accountNameById[transaction.accountId] ?? 'Cuenta'} |{' '}
                   {categoryNameById[transaction.categoryId] ?? 'Categoria'}
                 </Text>
-                <Text style={ui.itemMeta}>Tipo: {transaction.type}</Text>
+                <Text style={ui.itemMeta}>Tipo: {TRANSACTION_TYPE_LABEL[transaction.type]}</Text>
               </View>
               <View style={styles.itemActions}>
                 <Text style={ui.itemAmount}>
@@ -283,7 +287,9 @@ export default function TransactionsScreen() {
             key={item}
             onPress={() => setType(item)}
             style={[ui.chip, type === item && ui.chipActive]}>
-            <Text style={[ui.chipText, type === item && ui.chipTextActive]}>{item}</Text>
+            <Text style={[ui.chipText, type === item && ui.chipTextActive]}>
+              {TRANSACTION_TYPE_LABEL[item]}
+            </Text>
           </Pressable>
         ))}
       </View>

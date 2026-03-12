@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { PremiumScrollView } from '@/components/premium-scroll-view';
 import { Collapsible } from '@/components/ui/collapsible';
+import { ACCOUNT_TYPE_META } from '@/constants/account-type-meta';
 import { type AppColorPalette } from '@/constants/theme';
 import { type AccountType, useFinance } from '@/contexts/finance-context';
 import { usePremiumUI } from '@/hooks/use-premium-ui';
@@ -106,7 +108,16 @@ export default function AccountsScreen() {
             key={item}
             onPress={() => setType(item)}
             style={[ui.chip, type === item && ui.chipActive]}>
-            <Text style={[ui.chipText, type === item && ui.chipTextActive]}>{item}</Text>
+            <View style={styles.chipContent}>
+              <MaterialCommunityIcons
+                name={ACCOUNT_TYPE_META[item].icon}
+                size={15}
+                color={type === item ? colors.tint : colors.textMuted}
+              />
+              <Text style={[ui.chipText, type === item && ui.chipTextActive]}>
+                {ACCOUNT_TYPE_META[item].label}
+              </Text>
+            </View>
           </Pressable>
         ))}
       </View>
@@ -147,9 +158,17 @@ export default function AccountsScreen() {
           accounts.map((account) => (
             <View key={account.id} style={ui.listItem}>
               <View style={ui.listInfo}>
-                <Text style={ui.itemTitle}>{account.name}</Text>
+                <View style={styles.titleRow}>
+                  <MaterialCommunityIcons
+                    name={ACCOUNT_TYPE_META[account.type].icon}
+                    size={16}
+                    color={colors.textSubtle}
+                  />
+                  <Text style={ui.itemTitle}>{account.name}</Text>
+                </View>
                 <Text style={ui.itemMeta}>
-                  Tipo: {account.type} | {formatAmount(account.balance, account.currency)}
+                  Tipo: {ACCOUNT_TYPE_META[account.type].label} |{' '}
+                  {formatAmount(account.balance, account.currency)}
                 </Text>
               </View>
               <View style={styles.itemActions}>
@@ -172,6 +191,16 @@ const createStyles = (colors: AppColorPalette) =>
   StyleSheet.create({
     container: {
       gap: 16,
+    },
+    chipContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    titleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
     },
     itemActions: {
       flexDirection: 'row',

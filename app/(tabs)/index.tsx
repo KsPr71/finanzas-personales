@@ -1,7 +1,9 @@
 import { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { PremiumScrollView } from "@/components/premium-scroll-view";
+import { ACCOUNT_TYPE_META } from "@/constants/account-type-meta";
 import { Fonts, type AppColorPalette } from "@/constants/theme";
 import { useFinance } from "@/contexts/finance-context";
 import { usePremiumUI } from "@/hooks/use-premium-ui";
@@ -63,7 +65,7 @@ export default function HomeScreen() {
       tone: "neutral" as const,
     },
     {
-      label: "Ingresos",
+      label: "Entradas",
       value: formatAmount(totalIncome, currency),
       tone: "positive" as const,
     },
@@ -113,9 +115,18 @@ export default function HomeScreen() {
                 index === accounts.length - 1 && styles.listRowLast,
               ]}
             >
-              <View>
-                <Text style={ui.itemTitle}>{account.name}</Text>
-                <Text style={ui.itemMeta}>Tipo: {account.type}</Text>
+              <View style={styles.accountInfoBlock}>
+                <View style={styles.accountTitleRow}>
+                  <MaterialCommunityIcons
+                    name={ACCOUNT_TYPE_META[account.type].icon}
+                    size={16}
+                    color={colors.textSubtle}
+                  />
+                  <Text style={ui.itemTitle}>{account.name}</Text>
+                </View>
+                <Text style={ui.itemMeta}>
+                  Tipo: {ACCOUNT_TYPE_META[account.type].label}
+                </Text>
               </View>
               <Text style={ui.itemAmount}>
                 {formatAmount(account.balance, account.currency)}
@@ -246,6 +257,14 @@ const createStyles = (colors: AppColorPalette) =>
     },
     itemBlock: {
       flex: 1,
+    },
+    accountInfoBlock: {
+      gap: 2,
+    },
+    accountTitleRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
     },
     link: {
       marginTop: 4,

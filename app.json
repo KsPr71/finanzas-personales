@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "finanzas-personales",
+    "name": "Finanzas Personales",
     "slug": "finanzas-personales",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -12,6 +12,7 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.synaptic.finanzaspersonales",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -43,6 +44,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "5f0196af-5137-4b2b-aa16-1fc283135766"
+      }
+    },
+    "owner": "synaptic"
   }
 }

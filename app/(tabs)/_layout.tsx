@@ -4,7 +4,6 @@ import {
   DrawerContentScrollView,
   DrawerItemList,
 } from "@react-navigation/drawer";
-import Constants from "expo-constants";
 import { Link } from "expo-router";
 import { Drawer } from "expo-router/drawer";
 import React from "react";
@@ -13,11 +12,12 @@ import { Image, StyleSheet, Text, View } from "react-native";
 import Separator from "@/components/ui/separator";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { getAppVersion } from "@/lib/app-version";
 
 function AppDrawerContent(props: DrawerContentComponentProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
-  const appVersion = Constants.expoConfig?.version ?? "1.0.0";
+  const appVersion = getAppVersion();
 
   return (
     <DrawerContentScrollView

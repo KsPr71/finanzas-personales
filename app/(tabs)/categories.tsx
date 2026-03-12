@@ -8,6 +8,10 @@ import { type CategoryType, useFinance } from '@/contexts/finance-context';
 import { usePremiumUI } from '@/hooks/use-premium-ui';
 
 const CATEGORY_TYPES: CategoryType[] = ['income', 'expense'];
+const CATEGORY_TYPE_LABEL: Record<CategoryType, string> = {
+  income: 'Entrada',
+  expense: 'Gastos',
+};
 
 export default function CategoriesScreen() {
   const { categories, addCategory, updateCategory, deleteCategory } = useFinance();
@@ -80,7 +84,7 @@ export default function CategoriesScreen() {
             key={item}
             onPress={() => setType(item)}
             style={[ui.chip, type === item && ui.chipActive]}>
-            <Text style={[ui.chipText, type === item && ui.chipTextActive]}>{item}</Text>
+            <Text style={[ui.chipText, type === item && ui.chipTextActive]}>{CATEGORY_TYPE_LABEL[item]}</Text>
           </Pressable>
         ))}
       </View>
@@ -113,9 +117,9 @@ export default function CategoriesScreen() {
       </View>
 
       <View style={ui.section}>
-        <Text style={ui.sectionTitle}>Categorias de ingresos</Text>
+        <Text style={ui.sectionTitle}>Categorias de entrada</Text>
         {groupedCategories.income.length === 0 ? (
-          <Text style={ui.empty}>No hay categorias de ingreso.</Text>
+          <Text style={ui.empty}>No hay categorias de entrada.</Text>
         ) : (
           groupedCategories.income.map((category) => (
             <View key={category.id} style={styles.categoryRow}>

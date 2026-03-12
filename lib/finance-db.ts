@@ -13,6 +13,8 @@ import type {
 
 const DB_NAME = 'finance.db';
 const THEME_PREFERENCE_KEY = 'theme_preference';
+const FINANCE_RESET_KEY = 'finance_reset_applied_2026_03_11';
+const RESET_APPLIED_VALUE = '1';
 
 export type AppThemePreference = 'system' | 'light' | 'dark';
 
@@ -38,6 +40,33 @@ const toNumber = (value: unknown) => {
 
 const isThemePreference = (value: unknown): value is AppThemePreference =>
   value === 'system' || value === 'light' || value === 'dark';
+
+async function wasFinanceResetApplied() {
+  await ensureSchema();
+  const db = await getDb();
+
+  const row = await db.getFirstAsync<{ value: string }>(
+    'SELECT value FROM app_settings WHERE key = ?',
+    FINANCE_RESET_KEY
+  );
+
+  return row?.value === RESET_APPLIED_VALUE;
+}
+
+async function markFinanceResetApplied() {
+  await ensureSchema();
+  const db = await getDb();
+
+  await db.runAsync(
+    `
+      INSERT INTO app_settings (key, value)
+      VALUES (?, ?)
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value
+    `,
+    FINANCE_RESET_KEY,
+    RESET_APPLIED_VALUE
+  );
+}
 
 async function getDb() {
   if (!dbPromise) {
@@ -241,6 +270,14 @@ export async function persistFinanceSnapshot(snapshot: FinanceSnapshot) {
 }
 
 export async function prepareFinanceSnapshot(initialSnapshot: FinanceSnapshot) {
+  const shouldForceReset = !(await wasFinanceResetApplied());
+
+  if (shouldForceReset) {
+    await persistFinanceSnapshot(initialSnapshot);
+    await markFinanceResetApplied();
+    return initialSnapshot;
+  }
+
   const current = await loadSnapshotFromDb();
   const hasSeedData = current.accounts.length > 0 || current.categories.length > 0;
 

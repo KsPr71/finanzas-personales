@@ -120,52 +120,9 @@ const FinanceContext = createContext<FinanceContextValue | undefined>(undefined)
 
 const today = new Date().toISOString().slice(0, 10);
 
-const INITIAL_ACCOUNTS: Account[] = [
-  {
-    id: 'account-main',
-    name: 'Cuenta principal',
-    type: 'bank',
-    balance: 1850,
-    currency: 'USD',
-  },
-  {
-    id: 'account-cash',
-    name: 'Efectivo',
-    type: 'cash',
-    balance: 230,
-    currency: 'USD',
-  },
-];
-
-const INITIAL_CATEGORIES: Category[] = [
-  { id: 'income-salary', name: 'Salario', type: 'income' },
-  { id: 'income-freelance', name: 'Freelance', type: 'income' },
-  { id: 'expense-food', name: 'Comida', type: 'expense' },
-  { id: 'expense-transport', name: 'Transporte', type: 'expense' },
-  { id: 'expense-services', name: 'Servicios', type: 'expense' },
-];
-
-const INITIAL_TRANSACTIONS: Transaction[] = [
-  {
-    id: 'transaction-1',
-    accountId: 'account-main',
-    categoryId: 'income-salary',
-    type: 'income',
-    amount: 2000,
-    description: 'Pago mensual',
-    date: today,
-  },
-  {
-    id: 'transaction-2',
-    accountId: 'account-main',
-    categoryId: 'expense-services',
-    type: 'expense',
-    amount: 150,
-    description: 'Internet y teléfono',
-    date: today,
-  },
-];
-
+const INITIAL_ACCOUNTS: Account[] = [];
+const INITIAL_CATEGORIES: Category[] = [];
+const INITIAL_TRANSACTIONS: Transaction[] = [];
 const INITIAL_TRANSFERS: Transfer[] = [];
 const INITIAL_SNAPSHOT = {
   accounts: INITIAL_ACCOUNTS,
@@ -879,3 +836,4 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 });
+

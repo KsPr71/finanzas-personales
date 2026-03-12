@@ -88,11 +88,11 @@ export default function ReportsScreen() {
       <Text style={ui.title}>Reportes</Text>
 
       <View style={ui.section}>
-        <Text style={ui.sectionTitle}>Relacion ingresos vs egresos</Text>
+        <Text style={ui.sectionTitle}>Relacion entradas vs gastos</Text>
 
         <View style={styles.chartRow}>
           <View style={styles.chartLabelRow}>
-            <Text style={styles.chartLabel}>Ingresos</Text>
+            <Text style={styles.chartLabel}>Entradas</Text>
             <Text style={styles.chartAmount}>{formatAmount(totalIncome, currency)}</Text>
           </View>
           <View style={styles.barTrack}>
@@ -116,9 +116,9 @@ export default function ReportsScreen() {
       </View>
 
       <View style={ui.section}>
-        <Text style={ui.sectionTitle}>Composicion de ingresos por categoria</Text>
+        <Text style={ui.sectionTitle}>Composicion de entradas por categoria</Text>
         {incomeComposition.length === 0 ? (
-          <Text style={ui.empty}>No hay ingresos para mostrar.</Text>
+          <Text style={ui.empty}>No hay entradas para mostrar.</Text>
         ) : (
           incomeComposition.map((item) => (
             <View key={item.categoryId} style={styles.categoryRow}>
