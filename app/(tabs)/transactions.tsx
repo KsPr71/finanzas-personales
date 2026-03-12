@@ -13,7 +13,11 @@ const TRANSACTION_TYPE_LABEL: Record<TransactionType, string> = {
   expense: 'Gastos',
 };
 const today = new Date().toISOString().slice(0, 10);
-const monthFormatter = new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric' });
+const monthFormatter = new Intl.DateTimeFormat('es-ES', {
+  month: 'long',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
 const ALL_CATEGORIES_FILTER = 'all';
 
 const formatAmount = (amount: number, currency: string) => `${currency} ${amount.toFixed(2)}`;

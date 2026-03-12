@@ -9,6 +9,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { usePremiumUI } from '@/hooks/use-premium-ui';
 
@@ -23,6 +24,7 @@ export function PremiumScrollView({
   ...scrollProps
 }: PremiumScrollViewProps) {
   const { colors } = usePremiumUI();
+  const insets = useSafeAreaInsets();
   const {
     keyboardShouldPersistTaps = 'handled',
     keyboardDismissMode = Platform.OS === 'ios' ? 'interactive' : 'on-drag',
@@ -41,7 +43,12 @@ export function PremiumScrollView({
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView
           style={[styles.scroll, style]}
-          contentContainerStyle={[styles.content, styles.contentGrow, contentContainerStyle]}
+          contentContainerStyle={[
+            styles.content,
+            { paddingBottom: insets.bottom + 88 },
+            styles.contentGrow,
+            contentContainerStyle,
+          ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps={keyboardShouldPersistTaps}
           keyboardDismissMode={keyboardDismissMode}
@@ -85,7 +92,6 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 16,
     paddingTop: 18,
-    paddingBottom: 28,
     gap: 14,
   },
   contentGrow: {

@@ -31,23 +31,18 @@ export default function ModalScreen() {
           transacciones y transferencias internas
         </Text>
       </View>
-      <TouchableOpacity
-        onPress={() =>
-          Linking.openURL("https://landing-page-ten-pi-77.vercel.app/")
-        }
-      >
-        <View
-          style={[
-            styles.infoApp,
-            { backgroundColor: Colors.light.surfaceMuted },
-          ]}
+      <View style={[styles.infoApp, { backgroundColor: Colors.light.surface }]}>
+        <TouchableOpacity
+          onPress={() =>
+            Linking.openURL("https://landing-page-ten-pi-77.vercel.app/")
+          }
         >
           <Image
             source={require("@/assets/images/novadev1.png")}
             style={{ width: 150, height: 60 }}
           />
-        </View>
-      </TouchableOpacity>
+        </TouchableOpacity>
+      </View>
       <Link href="/" dismissTo style={[styles.link, { color: colors.tint }]}>
         Volver al resumen
       </Link>
